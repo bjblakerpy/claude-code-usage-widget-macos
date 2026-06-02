@@ -6,7 +6,7 @@ A macOS menu bar app that shows your Claude Code subscription usage in real time
 - Color-coded indicator: 🟢 under 50% / 🟡 50–79% / 🔴 80%+
 - Countdown to next reset
 - Reads your existing Claude Code credentials — no extra login required
-- Auto-refreshes every 5 minutes
+- Auto-refreshes every 15 minutes
 
 ---
 
