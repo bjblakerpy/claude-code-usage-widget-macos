@@ -6,27 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXContainerItemProxy section */
-		202F5F202FB6BFC700C7E762 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 202F5F082FB6BFC600C7E762 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 202F5F0F2FB6BFC600C7E762;
-			remoteInfo = "Claude Usage Viewer";
-		};
-		202F5F2A2FB6BFC700C7E762 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 202F5F082FB6BFC600C7E762 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 202F5F0F2FB6BFC600C7E762;
-			remoteInfo = "Claude Usage Viewer";
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
 		202F5F102FB6BFC600C7E762 /* Claude Usage Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Claude Usage Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		202F5F1F2FB6BFC700C7E762 /* Claude Usage ViewerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Claude Usage ViewerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		202F5F292FB6BFC700C7E762 /* Claude Usage ViewerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Claude Usage ViewerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -35,34 +16,10 @@
 			path = "Claude Usage Viewer";
 			sourceTree = "<group>";
 		};
-		202F5F222FB6BFC700C7E762 /* Claude Usage ViewerTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Claude Usage ViewerTests";
-			sourceTree = "<group>";
-		};
-		202F5F2C2FB6BFC700C7E762 /* Claude Usage ViewerUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Claude Usage ViewerUITests";
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		202F5F0D2FB6BFC600C7E762 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		202F5F1C2FB6BFC700C7E762 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		202F5F262FB6BFC700C7E762 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -76,8 +33,6 @@
 			isa = PBXGroup;
 			children = (
 				202F5F122FB6BFC600C7E762 /* Claude Usage Viewer */,
-				202F5F222FB6BFC700C7E762 /* Claude Usage ViewerTests */,
-				202F5F2C2FB6BFC700C7E762 /* Claude Usage ViewerUITests */,
 				202F5F112FB6BFC600C7E762 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -86,8 +41,6 @@
 			isa = PBXGroup;
 			children = (
 				202F5F102FB6BFC600C7E762 /* Claude Usage Viewer.app */,
-				202F5F1F2FB6BFC700C7E762 /* Claude Usage ViewerTests.xctest */,
-				202F5F292FB6BFC700C7E762 /* Claude Usage ViewerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,52 +70,6 @@
 			productReference = 202F5F102FB6BFC600C7E762 /* Claude Usage Viewer.app */;
 			productType = "com.apple.product-type.application";
 		};
-		202F5F1E2FB6BFC700C7E762 /* Claude Usage ViewerTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 202F5F362FB6BFC700C7E762 /* Build configuration list for PBXNativeTarget "Claude Usage ViewerTests" */;
-			buildPhases = (
-				202F5F1B2FB6BFC700C7E762 /* Sources */,
-				202F5F1C2FB6BFC700C7E762 /* Frameworks */,
-				202F5F1D2FB6BFC700C7E762 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				202F5F212FB6BFC700C7E762 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				202F5F222FB6BFC700C7E762 /* Claude Usage ViewerTests */,
-			);
-			name = "Claude Usage ViewerTests";
-			packageProductDependencies = (
-			);
-			productName = "Claude Usage ViewerTests";
-			productReference = 202F5F1F2FB6BFC700C7E762 /* Claude Usage ViewerTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		202F5F282FB6BFC700C7E762 /* Claude Usage ViewerUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 202F5F392FB6BFC700C7E762 /* Build configuration list for PBXNativeTarget "Claude Usage ViewerUITests" */;
-			buildPhases = (
-				202F5F252FB6BFC700C7E762 /* Sources */,
-				202F5F262FB6BFC700C7E762 /* Frameworks */,
-				202F5F272FB6BFC700C7E762 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				202F5F2B2FB6BFC700C7E762 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				202F5F2C2FB6BFC700C7E762 /* Claude Usage ViewerUITests */,
-			);
-			name = "Claude Usage ViewerUITests";
-			packageProductDependencies = (
-			);
-			productName = "Claude Usage ViewerUITests";
-			productReference = 202F5F292FB6BFC700C7E762 /* Claude Usage ViewerUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -175,14 +82,6 @@
 				TargetAttributes = {
 					202F5F0F2FB6BFC600C7E762 = {
 						CreatedOnToolsVersion = 26.5;
-					};
-					202F5F1E2FB6BFC700C7E762 = {
-						CreatedOnToolsVersion = 26.5;
-						TestTargetID = 202F5F0F2FB6BFC600C7E762;
-					};
-					202F5F282FB6BFC700C7E762 = {
-						CreatedOnToolsVersion = 26.5;
-						TestTargetID = 202F5F0F2FB6BFC600C7E762;
 					};
 				};
 			};
@@ -201,28 +100,12 @@
 			projectRoot = "";
 			targets = (
 				202F5F0F2FB6BFC600C7E762 /* Claude Usage Viewer */,
-				202F5F1E2FB6BFC700C7E762 /* Claude Usage ViewerTests */,
-				202F5F282FB6BFC700C7E762 /* Claude Usage ViewerUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		202F5F0E2FB6BFC600C7E762 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		202F5F1D2FB6BFC700C7E762 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		202F5F272FB6BFC700C7E762 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -239,34 +122,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		202F5F1B2FB6BFC700C7E762 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		202F5F252FB6BFC700C7E762 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		202F5F212FB6BFC700C7E762 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 202F5F0F2FB6BFC600C7E762 /* Claude Usage Viewer */;
-			targetProxy = 202F5F202FB6BFC700C7E762 /* PBXContainerItemProxy */;
-		};
-		202F5F2B2FB6BFC700C7E762 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 202F5F0F2FB6BFC600C7E762 /* Claude Usage Viewer */;
-			targetProxy = 202F5F2A2FB6BFC700C7E762 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		202F5F312FB6BFC700C7E762 /* Debug */ = {
@@ -413,13 +269,15 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Claude Code Usage Viewer";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -456,13 +314,15 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Claude Code Usage Viewer";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-Viewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -472,86 +332,6 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		202F5F372FB6BFC700C7E762 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B2UP797JZ7;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-ViewerTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Claude Usage Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Claude Usage Viewer";
-			};
-			name = Debug;
-		};
-		202F5F382FB6BFC700C7E762 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B2UP797JZ7;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-ViewerTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Claude Usage Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Claude Usage Viewer";
-			};
-			name = Release;
-		};
-		202F5F3A2FB6BFC700C7E762 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B2UP797JZ7;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-ViewerUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "Claude Usage Viewer";
-			};
-			name = Debug;
-		};
-		202F5F3B2FB6BFC700C7E762 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B2UP797JZ7;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "model40.Claude-Usage-ViewerUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "Claude Usage Viewer";
 			};
 			name = Release;
 		};
@@ -572,24 +352,6 @@
 			buildConfigurations = (
 				202F5F342FB6BFC700C7E762 /* Debug */,
 				202F5F352FB6BFC700C7E762 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		202F5F362FB6BFC700C7E762 /* Build configuration list for PBXNativeTarget "Claude Usage ViewerTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				202F5F372FB6BFC700C7E762 /* Debug */,
-				202F5F382FB6BFC700C7E762 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		202F5F392FB6BFC700C7E762 /* Build configuration list for PBXNativeTarget "Claude Usage ViewerUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				202F5F3A2FB6BFC700C7E762 /* Debug */,
-				202F5F3B2FB6BFC700C7E762 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
