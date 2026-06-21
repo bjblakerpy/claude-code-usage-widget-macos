@@ -34,18 +34,24 @@ private nonisolated struct APIUsage: Decodable, Sendable {
 nonisolated enum UsageError: LocalizedError, Sendable {
     case noCredentials
     case unauthorized
+    case rateLimited(retryAt: Date)
     case network(String)
     case http(Int)
     case decoding
 
     var errorDescription: String? {
         switch self {
-        case .noCredentials: return "No Claude Code credentials found.\nRun: claude login"
-        case .unauthorized:  return "Credentials expired.\nRun: claude login"
-        case .network(let m): return "Network error:\n\(m)"
-        case .http(let c):   return "API error: HTTP \(c)"
-        case .decoding:      return "Could not parse response."
+        case .noCredentials:        return "No Claude Code credentials found.\nRun: claude login"
+        case .unauthorized:         return "Credentials expired.\nRun: claude login"
+        case .rateLimited(let at):  return "Rate limited by Anthropic.\nNext attempt in \(Self.minutesUntil(at)) min."
+        case .network(let m):       return "Network error:\n\(m)"
+        case .http(let c):          return "API error: HTTP \(c)"
+        case .decoding:             return "Could not parse response."
         }
+    }
+
+    private static func minutesUntil(_ date: Date) -> Int {
+        max(1, Int((date.timeIntervalSinceNow / 60).rounded(.up)))
     }
 }
 
@@ -123,6 +129,11 @@ actor UsageClient {
             throw UsageError.network("No response from server.")
         }
         if http.statusCode == 401 { throw UsageError.unauthorized }
+        if http.statusCode == 429 {
+            // Honor Retry-After if present; default to 1 hour otherwise.
+            let retryAt = Self.parseRetryAfter(http) ?? Date().addingTimeInterval(60 * 60)
+            throw UsageError.rateLimited(retryAt: retryAt)
+        }
         guard http.statusCode == 200 else { throw UsageError.http(http.statusCode) }
 
         guard let api = try? JSONDecoder().decode(APIUsage.self, from: data) else {
@@ -143,6 +154,20 @@ actor UsageClient {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
     }
+
+    // Retry-After can be either an integer (seconds) or an HTTP-date.
+    private static func parseRetryAfter(_ http: HTTPURLResponse) -> Date? {
+        guard let raw = http.value(forHTTPHeaderField: "Retry-After") else { return nil }
+        let val = raw.trimmingCharacters(in: .whitespaces)
+        if let secs = TimeInterval(val) {
+            return Date().addingTimeInterval(secs)
+        }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "GMT")
+        f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        return f.date(from: val)
+    }
 }
 
 // MARK: - Store
@@ -150,9 +175,11 @@ actor UsageClient {
 @MainActor
 @Observable
 final class UsageStore {
-    private(set) var snapshot:  UsageSnapshot?
-    private(set) var error:     UsageError?
-    private(set) var isLoading: Bool = false
+    private(set) var snapshot:           UsageSnapshot?
+    private(set) var error:              UsageError?
+    private(set) var isLoading:          Bool   = false
+    // While in cooldown after a 429, suppress further network calls.
+    private(set) var nextAllowedFetch:   Date?
 
     @ObservationIgnored private let client   = UsageClient()
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -167,20 +194,30 @@ final class UsageStore {
         }
     }
 
+    var canRefresh: Bool {
+        if isLoading { return false }
+        if let next = nextAllowedFetch, Date() < next { return false }
+        return true
+    }
+
     func refresh() async {
-        if isLoading { return }
+        if !canRefresh { return }
         isLoading = true
         defer { isLoading = false }
 
         do {
             let fresh = try await client.fetch()
-            snapshot  = fresh
-            error     = nil
+            snapshot          = fresh
+            error             = nil
+            nextAllowedFetch  = nil
             if let data = try? JSONEncoder().encode(fresh) {
                 defaults.set(data, forKey: Self.snapshotKey)
             }
         } catch let usageError as UsageError {
             error = usageError
+            if case .rateLimited(let retryAt) = usageError {
+                nextAllowedFetch = retryAt
+            }
         } catch {
             self.error = .network(error.localizedDescription)
         }
@@ -210,10 +247,11 @@ struct UsageRowView: View {
     private var resetText: String {
         guard let resetsAt else { return "—" }
         let delta = resetsAt.timeIntervalSince(now)
-        guard delta > 0 else { return "resetting" }
+        guard delta > 0 else { return "reset" }
         let h = Int(delta) / 3600
         let m = (Int(delta) % 3600) / 60
-        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        let dur = h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        return "resets in \(dur)"
     }
 
     var body: some View {
@@ -226,7 +264,7 @@ struct UsageRowView: View {
                 Text(pct.map { String(format: "%.0f%%", $0) } ?? "—")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(barColor)
-                Text("resets \(resetText)")
+                Text(resetText)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -303,7 +341,7 @@ struct MenuPopoverView: View {
                         Task { await store.refresh() }
                     }
                     .keyboardShortcut("r")
-                    .disabled(store.isLoading)
+                    .disabled(!store.canRefresh)
 
                     Spacer()
 
