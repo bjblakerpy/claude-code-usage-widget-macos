@@ -86,7 +86,7 @@ nonisolated enum Keychain {
 // We mimic the Claude Code CLI's User-Agent so the OAuth usage endpoint
 // accepts us. Bump this when the upstream CLI bumps. (We can't query the
 // installed CLI from a sandboxed app — its binary path isn't reachable.)
-private nonisolated let claudeCodeUserAgent = "claude-code/2.0.31"
+private nonisolated let claudeCodeUserAgent = "claude-code/2.1.302"
 
 actor UsageClient {
     // Cached so we only hit the keychain (and prompt the user) once per
@@ -200,10 +200,43 @@ final class UsageStore {
         return true
     }
 
+    // When the background loop should fetch next. Wall-clock based so it
+    // survives sleep/wake, and set by every refresh — including a manual
+    // one — so a 429 from the Refresh button reschedules the loop too.
+    @ObservationIgnored private(set) var nextScheduledFetch = Date()
+
+    // The usage endpoint's rate limit (~3 calls per 5 min) is shared with
+    // every Claude Code session, Claude Desktop and the VS Code usage meter
+    // on the same login, so a fixed 15-minute tick usually lands while one of
+    // them has drained it. After a 429, retry just after Retry-After expires
+    // instead, with jitter so we don't collide with the other clients that
+    // are also waiting for the window to reopen.
+    private func scheduleNextFetch() {
+        if let next = nextAllowedFetch {
+            nextScheduledFetch = max(next, Date()).addingTimeInterval(Double.random(in: 5...45))
+        } else {
+            nextScheduledFetch = Date().addingTimeInterval(15 * 60)
+        }
+    }
+
+    // Background refresh loop; runs for the life of the menu-bar label.
+    func runRefreshLoop() async {
+        while !Task.isCancelled {
+            let wait = nextScheduledFetch.timeIntervalSinceNow
+            if wait <= 0 { await refresh() }
+            // Re-check at least once a minute so a reschedule from a manual
+            // refresh is picked up promptly.
+            try? await Task.sleep(for: .seconds(min(max(wait, 1), 60)))
+        }
+    }
+
     func refresh() async {
         if !canRefresh { return }
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            scheduleNextFetch()
+        }
 
         do {
             let fresh = try await client.fetch()
@@ -376,14 +409,7 @@ struct Claude_Usage_ViewerApp: App {
             MenuPopoverView(store: store)
         } label: {
             Text(store.menuBarTitle)
-                .task {
-                    await store.refresh()
-                    while !Task.isCancelled {
-                        try? await Task.sleep(for: .seconds(15 * 60))
-                        if Task.isCancelled { break }
-                        await store.refresh()
-                    }
-                }
+                .task { await store.runRefreshLoop() }
         }
         .menuBarExtraStyle(.window)
     }
