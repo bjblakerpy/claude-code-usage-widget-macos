@@ -11,21 +11,21 @@ import Testing
         return try Data(contentsOf: url)
     }
 
-    @Test func parsesLimitsListFromRealResponse() throws {
+    @Test func parsesLimitsListFromFullResponse() throws {
         let s = try UsageAPIParser.parse(fixture(), now: now)
         #expect(s.limits.map(\.kind) == ["session", "weekly_all"])
-        #expect(s.limits[0].percent == 65)
+        #expect(s.limits[0].percent == 42)
         #expect(s.limits[0].group == .session)
         #expect(s.limits[0].title == "Session (5-hour)")
         #expect(s.limits[1].group == .weekly)
-        #expect(s.limits[0].resetsAt == HTTPParsing.isoDate("2026-10-17T03:20:00.437869+00:00"))
+        #expect(s.limits[0].resetsAt == HTTPParsing.isoDate("2030-01-01T05:00:00.123456+00:00"))
         #expect(s.fetchedAt == now)
     }
 
     @Test func parsesExtraUsageAndBreakdown() throws {
         let s = try UsageAPIParser.parse(fixture(), now: now)
-        #expect(s.extraUsage?.used.amount == 0)
-        #expect(s.extraUsage?.limit?.amount == 50)
+        #expect(s.extraUsage?.used.amount == 12.34)
+        #expect(s.extraUsage?.limit?.amount == 100)
         #expect(s.weeklyBreakdown.map(\.key) == ["claude_code", "chat", "cowork"])  // zero rows dropped
     }
 
