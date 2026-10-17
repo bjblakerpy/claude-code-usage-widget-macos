@@ -1,0 +1,238 @@
+// UsageStore.swift
+// Claude Usage Viewer
+//
+// Owns the app's state and decides when to fetch. Two sources feed it:
+//   1. The Claude Code status-line feed (a file, checked every 5 s): live
+//      session/weekly numbers while you use Claude Code, at no API cost.
+//   2. The usage API (scheduled by FetchScheduler): everything else, and
+//      the session/weekly numbers when Claude Code is idle.
+
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class UsageStore {
+    private(set) var apiSnapshot:  UsageSnapshot?
+    private(set) var feedLimits:   [UsageLimit] = []
+    private(set) var history       = UsageHistory()
+    private(set) var planName:     String?
+    private(set) var error:        UsageError?
+    private(set) var isLoading     = false
+    private(set) var fetchState    = FetchState()
+    private(set) var feedState:    StatusLineInstaller.State = .notInstalled
+    // Advanced every 30 s so projections, countdowns and staleness move on
+    // their own between data updates.
+    private(set) var now = Date()
+
+    @ObservationIgnored let prefs: Preferences
+    @ObservationIgnored let notifier = Notifier()
+    @ObservationIgnored private let system = SystemMonitor()
+    @ObservationIgnored private let client = UsageClient()
+    @ObservationIgnored private let cli = ClaudeCLI()
+    @ObservationIgnored private let installer = AppPaths.statusLineInstaller
+    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private var rejectedFingerprint: String?
+    @ObservationIgnored private var firedAlerts: Set<String> = []
+    @ObservationIgnored private var feedModified: Date?
+    @ObservationIgnored private var historyDirty = false
+    @ObservationIgnored private var loops: [Task<Void, Never>] = []
+
+    private static let snapshotKey = "snapshot.v2"
+    private static let firedKey = "firedAlerts"
+    static let staleAfter: TimeInterval = 30 * 60
+
+    init(prefs: Preferences) {
+        self.prefs = prefs
+        if let data = defaults.data(forKey: Self.snapshotKey) {
+            apiSnapshot = try? JSONDecoder().decode(UsageSnapshot.self, from: data)
+        }
+        if let data = try? Data(contentsOf: AppPaths.historyFile) {
+            history = (try? JSONDecoder().decode(UsageHistory.self, from: data)) ?? UsageHistory()
+        }
+        firedAlerts = Set(defaults.stringArray(forKey: Self.firedKey) ?? [])
+        fetchState.lastSuccess = apiSnapshot?.fetchedAt
+    }
+
+    // MARK: Derived state
+
+    var limits: [UsageLimit] {
+        UsageMerger.merge(api: apiSnapshot?.limits ?? [], feed: feedLimits, now: now)
+    }
+
+    var projections: [String: Projection] {
+        Dictionary(limits.map { ($0.kind, Projector.project($0, samples: history.samples(for: $0), now: now)) },
+                   uniquingKeysWith: { a, _ in a })
+    }
+
+    var lastUpdated: Date? { [apiSnapshot?.fetchedAt, fetchState.feedUpdatedAt].compactMap { $0 }.max() }
+    var isFeedLive: Bool { FetchScheduler.isFeedActive(fetchState, now: now) }
+    var isStale: Bool { lastUpdated.map { now.timeIntervalSince($0) > Self.staleAfter } ?? true }
+    var cooldownUntil: Date? { FetchScheduler.inCooldown(fetchState, now: now) ? fetchState.cooldownUntil : nil }
+    var canRefresh: Bool { !isLoading && !FetchScheduler.inCooldown(fetchState, now: Date()) }
+
+    // Login problems always matter. Transient errors only matter once the
+    // numbers on screen are getting old; a 429 while the feed is live is noise.
+    var visibleError: UsageError? {
+        switch error {
+        case .noCredentials?, .loginExpired?, .unauthorized?: return error
+        case nil: return nil
+        default: return isStale ? error : nil
+        }
+    }
+
+    func menuBar(fmt: TimeFormatting = TimeFormatting()) -> MenuBarPresentation {
+        MenuBarPresenter.present(limits: limits, projections: projections, mode: prefs.menuBarMode,
+                                 isStale: isStale, now: now, fmt: fmt)
+    }
+
+    // MARK: Lifecycle
+
+    func start() {
+        feedState = installer.state()
+        notifier.start()
+        system.onActive = { [weak self] in self?.nudge() }
+        system.start()
+        pollFeed()
+
+        loops.append(Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.tick()
+                try? await Task.sleep(for: .seconds(30))
+            }
+        })
+        loops.append(Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                self?.pollFeed()
+            }
+        })
+    }
+
+    func saveNow() {
+        saveHistoryIfNeeded()
+    }
+
+    // Opening the popover, waking, unlocking or reconnecting.
+    func nudge() {
+        now = Date()
+        guard FetchScheduler.shouldFetchOnNudge(fetchState, now: now) else { return }
+        Task { await refresh() }
+    }
+
+    private func tick() async {
+        now = Date()
+        saveHistoryIfNeeded()
+        guard !system.isIdle, now >= FetchScheduler.nextFetch(fetchState, now: now) else {
+            evaluateAlerts()
+            return
+        }
+        await refresh()
+    }
+
+    // MARK: Fetching
+
+    func refresh() async {
+        guard canRefresh else { return }
+        isLoading = true
+        defer { isLoading = false }
+        fetchState.lastAttempt = Date()
+
+        let creds: ClaudeCredentials
+        do {
+            creds = try await CredentialReader.read()
+            planName = creds.planName
+            if creds.isExpired(now: Date()) { throw UsageError.loginExpired }
+            if creds.fingerprint == rejectedFingerprint { throw UsageError.unauthorized }
+        } catch {
+            fail(error as? UsageError ?? .noCredentials)
+            return
+        }
+
+        do {
+            let snapshot = try await client.fetch(token: creds.accessToken, userAgent: await cli.userAgent())
+            apiSnapshot = snapshot
+            error = nil
+            rejectedFingerprint = nil
+            fetchState.lastSuccess = snapshot.fetchedAt
+            fetchState.consecutiveFailures = 0
+            fetchState.cooldownUntil = nil
+            if let data = try? JSONEncoder().encode(snapshot) { defaults.set(data, forKey: Self.snapshotKey) }
+            dataChanged()
+        } catch UsageError.rateLimited(let retryAt) {
+            error = .rateLimited(retryAt: retryAt)
+            // Fix the jitter now so every reader agrees on one retry time.
+            fetchState.cooldownUntil = retryAt.addingTimeInterval(.random(in: FetchScheduler.jitterRange))
+        } catch UsageError.unauthorized {
+            // Don't retry this token; wait for Claude Code to replace it.
+            rejectedFingerprint = creds.fingerprint
+            fail(.unauthorized)
+        } catch {
+            fail(error as? UsageError ?? .network(error.localizedDescription))
+        }
+    }
+
+    private func fail(_ e: UsageError) {
+        error = e
+        fetchState.consecutiveFailures += 1
+    }
+
+    // MARK: Status-line feed
+
+    private func pollFeed() {
+        let url = installer.feedURL
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let modified = attrs[.modificationDate] as? Date, modified != feedModified,
+              let data = try? Data(contentsOf: url) else { return }
+        feedModified = modified
+        now = Date()
+        let parsed = StatusLineFeed.parse(data, observedAt: modified, now: now)
+        guard !parsed.isEmpty else { return }
+        feedLimits = parsed
+        fetchState.feedUpdatedAt = modified
+        dataChanged()
+    }
+
+    func installFeed() throws {
+        defer { feedState = installer.state() }
+        try installer.install()
+    }
+
+    func uninstallFeed() throws {
+        defer { feedState = installer.state() }
+        try installer.uninstall()
+        feedLimits = []
+        fetchState.feedUpdatedAt = nil
+        feedModified = nil
+    }
+
+    func refreshFeedState() { feedState = installer.state() }
+
+    // MARK: History and alerts
+
+    private func dataChanged() {
+        if history.record(limits) { historyDirty = true }
+        evaluateAlerts()
+    }
+
+    private func evaluateAlerts() {
+        let actions = AlertPlanner.plan(limits: limits, projections: projections, settings: prefs.alertSettings,
+                                        fired: firedAlerts, now: now, fmt: TimeFormatting())
+        guard !actions.isEmpty else { return }
+        notifier.perform(actions)
+        firedAlerts = AlertPlanner.prune(firedAlerts.union(actions.map(\.id)), now: now)
+        defaults.set(Array(firedAlerts), forKey: Self.firedKey)
+    }
+
+    private func saveHistoryIfNeeded() {
+        guard historyDirty else { return }
+        history.prune(now: Date())
+        do {
+            try FileManager.default.createDirectory(at: AppPaths.supportDir, withIntermediateDirectories: true)
+            try JSONEncoder().encode(history).write(to: AppPaths.historyFile, options: .atomic)
+            historyDirty = false
+        } catch {
+            // Non-fatal: history is a nicety; try again next tick.
+        }
+    }
+}

@@ -1,123 +1,80 @@
-# Claude Code Usage Widget
+# Claude Usage Viewer
 
-A macOS menu bar app that shows your Claude Code subscription usage in real time.
+A macOS menu-bar app that shows your Claude plan usage at a glance — and,
+more usefully, whether you're on track to run out before your limits reset.
 
-- **5-hour** and **7-day** utilization percentages
-- Color-coded indicator: 🟢 under 50% / 🟡 50–79% / 🔴 80%+
-- Countdown to next reset
-- Reads your existing Claude Code credentials — no extra login required
-- Auto-refreshes every 15 minutes
+```
+▬ 75% ~33m        ← session at 75%, on pace to hit the limit in ~33 minutes
+```
 
----
+- **Pace, not just percentage.** 48% with 4 hours left is fine if it took
+  four hours to get there and not fine if it took forty minutes. The menu bar
+  turns amber/red based on the *projection*, and shows time-to-limit.
+- **Live while you work.** Claude Code passes your usage to its status line on
+  every update; a small script saves it for the app, so numbers move in real
+  time without spending Anthropic's (shared, tight) usage-check rate limit.
+- **Everything the usage API knows:** session and weekly limits (plus any
+  per-model weekly limits), a pace marker and sparkline per window, this
+  week's usage by product, and extra-usage spend.
+- **Notifications** when you're on pace to hit a limit within the hour, at
+  80%/95% (adjustable), when a limit is reached, and when it resets.
+- Dims when the data is stale; right-click for Refresh / Settings / Quit.
 
 ## Requirements
 
-- macOS 13 (Ventura) or later
-- [Claude Code](https://claude.ai/code) installed and logged in
-- Xcode (free from the Mac App Store)
-- A Claude Pro, Max, Team, or Enterprise subscription
+- macOS 15.6 or later, Xcode 26
+- [Claude Code](https://claude.ai/code) installed and signed in with a Claude
+  Pro, Max, Team or Enterprise plan
 
----
-
-## Setup
-
-### Step 1 — Clone the repo
+## Install
 
 ```bash
 git clone https://github.com/bjblakerpy/claude-code-usage-widget-macos.git
 cd claude-code-usage-widget-macos
+make install        # runs tests, builds Release, installs to /Applications, launches
+make install-feed   # optional but recommended: live updates from Claude Code
 ```
 
-### Step 2 — Open in Xcode
+Set your signing team once in Xcode (target → Signing & Capabilities → Team;
+a free Apple ID works). The app turns on **Launch at login** the first time
+it runs; change it in Settings.
 
-```bash
-open "Claude Usage Viewer/Claude Usage Viewer.xcodeproj"
-```
-
-Or double-click `Claude Usage Viewer.xcodeproj` in Finder.
-
-### Step 3 — Set your signing team
-
-1. Click the **Claude Usage Viewer** project in the left sidebar (blue icon at the top)
-2. Under **TARGETS**, select **Claude Usage Viewer**
-3. Click the **Signing & Capabilities** tab
-4. Set **Team** to your Apple ID
-
-> A free Apple ID works fine. You don't need a paid developer account.
-
-### Step 4 — Build the app
-
-Press **Cmd+B**. Wait for "Build Succeeded" in the top bar.
-
-### Step 5 — Copy the app to Applications
-
-1. Go to **Product → Show Build Folder in Finder**
-2. Open the **Products → Applications** folder
-3. Drag **Claude Usage Viewer.app** to your **/Applications** folder
-
-### Step 6 — Launch it
-
-Open **/Applications/Claude Usage Viewer**. The usage indicator will appear in your menu bar at the top right of your screen.
-
-> If macOS says the app can't be opened because it's from an unidentified developer:
-> Go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**.
-
-### Step 7 — Set it to launch at login (optional)
-
-1. Go to **System Settings → General → Login Items & Extensions**
-2. Under **Open at Login**, click **+**
-3. Select **Claude Usage Viewer.app** from your Applications folder
-
-It will now start automatically every time you log in.
-
----
+Live updates can also be turned on or off in **Settings → Live updates from
+Claude Code**. Turning them on sets `statusLine` in `~/.claude/settings.json`
+(a backup is saved next to it as `settings.json.usage-viewer-backup`); if you
+already had a status line it keeps working unchanged, and turning live
+updates off restores it exactly.
 
 ## How it works
 
-Claude Code stores your OAuth credentials in the macOS Keychain under `Claude Code-credentials`. This app reads that token — the same one Claude Code already uses — and calls Anthropic's usage endpoint to get your current utilization. Nothing is stored or sent anywhere other than Anthropic's own API.
+| Source | When | Cost |
+|---|---|---|
+| Status-line feed (`~/Library/Application Support/Claude Usage Viewer/statusline-feed.json`) | Whenever Claude Code updates its status line | Free |
+| `GET api.anthropic.com/api/oauth/usage` | Every 15 min (30 while the feed is live), on wake/unlock, when you open the popover and data is >5 min old | Shares a ~3-calls-per-5-min limit with every Claude client on your login |
 
----
+The API call uses the OAuth token Claude Code keeps in the keychain item
+`Claude Code-credentials`, read with `/usr/bin/security` (no keychain prompt).
+The app never refreshes that token itself — doing so would rotate it out from
+under Claude Code — so if it has expired, the app waits for Claude Code to
+renew it. On HTTP 429 it waits exactly as long as `Retry-After` says, plus a
+little jitter. Nothing is sent anywhere except Anthropic's own API.
 
-## Troubleshooting
+The app is not sandboxed: it needs to run `/usr/bin/security`, find the
+installed `claude` binary (for the User-Agent) and read/write the feed.
 
-**"No Claude Code credentials found"**
+## Development
 
-Claude Code isn't installed or you haven't logged in yet. Run:
-```bash
-claude login
 ```
-Then click the menu bar icon and hit **Refresh**.
+Claude Usage Viewer/
+  Core/       pure logic, Foundation only — also built as the UsageCore package
+  Services/   keychain, CLI, API client, system events, notifications
+  Store/      UsageStore (state + scheduling), Preferences
+  Views/      SwiftUI popover and settings
+  App/        entry point, NSStatusItem controller
+Tests/UsageCoreTests/
+```
 
-**"Network error: hostname could not be found"**
-
-The app needs permission to make outbound network calls. In Xcode:
-1. Click the project in the sidebar
-2. Select the **Claude Usage Viewer** target
-3. Go to **Signing & Capabilities**
-4. Find **App Sandbox** and check **Outgoing Connections (Client)**
-
-Rebuild (Cmd+B), copy the new app to Applications, and relaunch.
-
-**"API error: HTTP 401"**
-
-Your token has expired. Run `claude login` in Terminal to refresh it, then click **Refresh** in the menu.
-
-**Menu bar shows "⚡ Claude" with no percentages**
-
-The first fetch may have failed. Click the icon and check for an error message. Hit **Refresh** to try again.
-
-**macOS blocks the app on first launch**
-
-Right-click the app → **Open** → **Open Anyway**. This only happens once.
-
----
-
-## A note on terms of service
-
-This app reads your own Claude Code credentials to show your own usage data back to you — the same numbers visible on claude.ai. It does not use your token to access Claude for any other purpose. That said, Anthropic's terms restrict OAuth token use to Claude Code and claude.ai. Use this for personal monitoring at your own discretion.
-
----
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+`make test` runs the unit tests (projection math, parsing against a real API
+response, scheduling, alerts, and the status-line installer including running
+the generated script). The Xcode project picks up new files in
+`Claude Usage Viewer/` automatically.
